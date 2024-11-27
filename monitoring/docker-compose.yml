@@ -1,0 +1,118 @@
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana 
+    restart: unless-stopped 
+    environment:
+      - 'GF_SMTP_ENABLED=${SMTP_ENBL}'
+      - 'GF_SMTP_HOST=${SMTP_HOST}'
+      - 'GF_SMTP_USER=${SMTP_USER}'
+      - 'GF_SMTP_PASSWORD=${SMTP_PASS}'
+      - 'GF_SMTP_SKIP_VERIFY=${SMTP_SKIP_VERIFY}'
+      - 'GF_SMTP_FROM_NAME=${SMTP_NAME}'
+      - 'GF_SMTP_FROM_ADDRESS=${SMTP_USER}'
+    networks:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert.rules:/etc/prometheus/alert.rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+
+  alertmanager-bot:
+    command:
+      - --alertmanager.url=${TG_BOT_URL}
+      - --log.level=${TG_BOT_LOG}
+      - --store=${TG_BOT_STORE}
+      - --bolt.path=${TG_BOT_PATH}
+      - --telegram.admin=${TG_BOT_ADMIN}
+      - --telegram.token=${TG_BOT_TOKEN}
+      - --listen.addr=${TG_BOT_ADDR}
+    image: metalmatze/alertmanager-bot:0.4.3
+    user: root
+    ports:
+      - 8888:8888
+    container_name: alertmanager-bot
+    hostname: alertmanager-bot
+    environment:
+      TG_BOT_URL: ${TG_BOT_URL}
+      TG_BOT_LOG: ${TG_BOT_LOG}
+      TG_BOT_STORE: ${TG_BOT_STORE}
+      TG_BOT_PATH: ${TG_BOT_PATH}
+      TG_BOT_ADMIN: ${TG_BOT_ADMIN}
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN}
+      TG_BOT_ADDR: ${TG_BOT_ADDR}
+      TZ: "Europe/Moscow"
+    restart: unless-stopped
+    volumes:
+      - ./bot-data:/data
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager:v0.21.0
+    user: root
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    container_name: alertmanager
+    hostname: alertmanager
+    environment:
+      TZ: "Europe/Moscow"
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/etc/alertmanager/data'
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail-data:/var/lib/promtail/positions
+      - ${PWD}/promtail/promtail-config.yaml:/etc/promtail/promtail.yml
+    command:
+      - '-config.file=/etc/promtail/promtail.yml'
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+
+
+networks:
+  monitoring:
+    external: true
+    name: monitoring-net
+
+volumes:
+  prometheus_data: {}
+  grafana-storage: {}
+  promtail-data: {}
