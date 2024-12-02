@@ -1,0 +1,11 @@
+apiVersion: 1
+contactPoints:
+    - orgId: 1
+      name: Alerting
+      receivers:
+        - uid: contact-alerts
+          type: email
+          settings:
+            addresses: noizemc09@gmail.com
+            singleEmail: false
+          disableResolveMessage: false
