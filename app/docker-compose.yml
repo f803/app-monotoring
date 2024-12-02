@@ -90,7 +90,7 @@ services:
 # Экспортеры
 
   node-exporter:
-    image: prom/node-exporter:v0.18.1
+    image: prom/node-exporter:latest
     container_name: node-exporter
     restart: unless-stopped
     volumes:
