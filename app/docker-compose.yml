@@ -1,7 +1,4 @@
 services:
-
-# Приложение
-# Все ок
   nginx:
     image: nginx:stable-alpine3.20-perl
     container_name: nginx
@@ -22,7 +19,6 @@ services:
         tag: "{{.ImageName}}|{{.Name}}"
     restart: always
 
-# Работает, но скрипт
   wordpress:
     image: wordpress:6.7.0-php8.1-fpm
     container_name: wordpress
@@ -54,7 +50,6 @@ services:
       options:
         tag: "{{.ImageName}}|{{.Name}}"
 
-# OK
   redis:
     image: redis:alpine3.20
     container_name: redis
@@ -66,7 +61,8 @@ services:
       driver: "json-file"
       options:
         tag: "{{.ImageName}}|{{.Name}}"
-# OK
+    restart: unless-stopped
+
   db:
     image: mariadb:11.5.2
     container_name: db
@@ -85,11 +81,16 @@ services:
       start_period: 10s
       retries: 3
       timeout: 5s
+    logging:
+      driver: "json-file"
+      options:
+        tag: "{{.ImageName}}|{{.Name}}"
+    restart: unless-stopped
 
 # Экспортеры
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v0.18.1
     container_name: node-exporter
     restart: unless-stopped
     volumes:
@@ -107,7 +108,7 @@ services:
       - monitoring
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.41.0
     container_name: cadvisor
     ports:
       - 8081:8080
@@ -118,7 +119,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
     networks:
       - monitoring
-
+    restart: unless-stopped
 
 # Keycloak
 
@@ -145,12 +146,14 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
       KEYCLOAK_IMPORT: /opt/keycloak/data/import/wordpress.json
+      PROXY_ADDRESS_FORWARDING: true
+      KEYCLOAK_FRONTEND_URL: http://sashayanebalbes.ddns.net/auth
 
       KC_HTTP_RELATIVE_PATH: /auth
-      KC_HOSTNAME: 192.168.4.17/auth
+      KC_HOSTNAME: sashayanebalbes.ddns.net/auth
       KC_HTTP_ENABLED: true
       HTTP_ADDRESS_FORWARDING: true
-    command: start-dev --hostname-debug=true --import-realm --http-relative-path /auth
+    command: start-dev --hostname-debug=true --import-realm 
     depends_on:
       - keycloakdb
     ports:
@@ -164,6 +167,7 @@ services:
       driver: "json-file"
       options:
         tag: "{{.ImageName}}|{{.Name}}"
+    restart: unless-stopped
 
 
   keycloakdb:
@@ -177,8 +181,8 @@ services:
     container_name: keycloak_db
     networks:
       - keycloak_network
+    restart: unless-stopped
 
-#Promtail
   promtail:
     image: grafana/promtail:2.9.2
     container_name: promtail
@@ -190,13 +194,16 @@ services:
       - '-config.file=/etc/promtail/promtail.yml'
     networks:
       - monitoring
+    restart: unless-stopped
 
 networks:
   nginx_wordpress:
     name: nginx
+    external: true
   keycloak_network:
   wordpress_db:
   monitoring:
+    external: true
     name: monitoring-net
 
 volumes:

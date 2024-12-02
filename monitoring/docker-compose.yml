@@ -1,6 +1,4 @@
-
 services:
-#OK
   grafana:
     image: grafana/grafana:11.3.1
     container_name: grafana
@@ -10,8 +8,7 @@ services:
       - grafana-storage:/var/lib/grafana 
       - ./grafana/provisioning/:/etc/grafana/provisioning/
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
-
-#    restart: unless-stopped 
+    restart: unless-stopped 
     environment:
       - 'GF_SMTP_ENABLED=${SMTP_ENBL}'
       - 'GF_SMTP_HOST=${SMTP_HOST}'
@@ -20,19 +17,20 @@ services:
       - 'GF_SMTP_SKIP_VERIFY=${SMTP_SKIP_VERIFY}'
       - 'GF_SMTP_FROM_NAME=${SMTP_NAME}'
       - 'GF_SMTP_FROM_ADDRESS=${SMTP_USER}'
-      - GF_SERVER_ROOT_URL=http://192.168.3.32/grafana/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - 'GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL}'
+      - 'GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH}'
 
-      - GF_AUTH_DISABLE_LOGIN_FORM=“true”
-      - GF_AUTH_ANONYMOUS_ENABLED=“true”
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=“Admin”
-      - GF_USERS_DEFAULT_THEME=light
+      - 'GF_AUTH_DISABLE_LOGIN_FORM=${GF_AUTH_DISABLE_LOGIN_FORM}'
+      - 'GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED}'
+      - 'GF_AUTH_ANONYMOUS_ORG_ROLE=${GF_AUTH_ANONYMOUS_ORG_ROLE}'
+
+      - 'GF_USERS_DEFAULT_THEME=${GF_USERS_DEFAULT_THEME}'
     networks:
       - nginx
       - monitoring
-# OK
+
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.0.1
     container_name: prometheus
     restart: unless-stopped
     volumes:
@@ -45,12 +43,12 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--web.listen-address=:5000'
     ports:
-      - 9090:9090
+      - 5000:5000
     networks:
       - monitoring
 
-#NEOK
 
   alertmanager-bot:
     command:
@@ -74,14 +72,11 @@ services:
       TG_BOT_ADMIN: ${TG_BOT_ADMIN}
       TG_BOT_TOKEN: ${TG_BOT_TOKEN}
       TG_BOT_ADDR: ${TG_BOT_ADDR}
-      TZ: "Europe/Moscow"
     restart: unless-stopped
     volumes:
       - ./bot-data:/data
     networks:
       - monitoring
-
-#OK?
 
   alertmanager:
     image: prom/alertmanager:v0.21.0
@@ -92,8 +87,6 @@ services:
       - ./alertmanager/:/etc/alertmanager/
     container_name: alertmanager
     hostname: alertmanager
-    environment:
-      TZ: "Europe/Moscow"
     restart: unless-stopped
     command:
       - '--config.file=/etc/alertmanager/config.yml'
@@ -101,17 +94,15 @@ services:
     networks:
       - monitoring
 
-#NEOK?
-
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.3.0
     container_name: loki
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml -validation.allow-structured-metadata=false
     networks:
       - monitoring
-
+    restart: unless-stopped 
 
 networks:
   monitoring:
