@@ -789,19 +789,19 @@
       "clientId": "wordpress",
       "name": "",
       "description": "",
-      "rootUrl": "http://192.168.4.50",
+      "rootUrl": "https://sashayanebalbes.ddns.net",
       "adminUrl": "",
-      "baseUrl": "http://192.168.4.50",
+      "baseUrl": "https://sashayanebalbes.ddns.net",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "keycloakxd",
       "redirectUris": [
-        "http://192.168.4.50/wp-admin/admin-ajax.php?action=openid-connect-authorize"
+        "https://sashayanebalbes.ddns.net/wp-admin/admin-ajax.php?action=openid-connect-authorize"
       ],
       "webOrigins": [
-        "http://192.168.4.50"
+        "https://sashayanebalbes.ddns.net"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -816,7 +816,7 @@
       "protocol": "openid-connect",
       "attributes": {
         "client.secret.creation.time": "1732876404",
-        "post.logout.redirect.uris": "http://192.168.4.50",
+        "post.logout.redirect.uris": "https://sashayanebalbes.ddns.net",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",

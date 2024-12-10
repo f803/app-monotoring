@@ -1,0 +1,4 @@
+.app/wordpress
+.app/
+.app/*.env
+.monitoring/.env

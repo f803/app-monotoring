@@ -1,23 +1,31 @@
 services:
   nginx:
-    image: nginx:stable-alpine3.20-perl
+    image: nginx:1.27.3
     container_name: nginx
     volumes:
-      - ./wordpress:/var/www/html
-      - ./nginx:/etc/nginx/conf.d
+      - wordpress:/var/www/html
+      - ./certbot/conf/:/etc/letsencrypt/:ro
+      - ./nginx:/etc/nginx/conf.d:ro
     networks:
       - monitoring
       - nginx_wordpress
     ports:
-      - "80:80"
+      - 80:80
+      - 443:443
     depends_on:
-      - wordpress
-      - keycloak
+       - wordpress
+       - keycloak
     logging:
       driver: "json-file"
       options:
         tag: "{{.ImageName}}|{{.Name}}"
     restart: always
+
+  # certbot:
+  #   image: certbot/certbot:latest
+  #   volumes:
+  #     - ./certbot/www/:/var/www/certbot/:rw
+  #     - ./certbot/conf/:/etc/letsencrypt/:rw
 
   wordpress:
     image: wordpress:6.7.0-php8.1-fpm
@@ -35,7 +43,7 @@ services:
         define('WP_REDIS_HOST', '${REDIS_HOST}');
         define('WP_REDIS_PORT', ${REDIS_PORT});
     volumes:
-      - ./wordpress:/var/www/html
+      - wordpress:/var/www/html
     restart: always
     command: >
       sh -c '
@@ -124,45 +132,43 @@ services:
 # Keycloak
 
   keycloak:
-    image: quay.io/keycloak/keycloak:23.0.7
+    image: quay.io/keycloak/keycloak:24.0.0
+    expose:
+      - 8080
     container_name: keycloak
+    volumes:
+      - keycloak-volume:/opt/keycloak/data
+      - ./keycloak/wordpress.json:/opt/keycloak/data/import/wordpress.json:ro
     environment:
       KC_DB: ${KC_DB}
       KC_DB_URL: ${KC_DB_URL}
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
 
-#      KC_HOSTNAME: ${KC_HOSTNAME}
-      KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT}
-      KC_HOSTNAME_STRICT: ${KC_HOSTNAME_STRICT}
-      KC_HOSTNAME_STRICT_HTTPS: ${KC_HOSTNAME_STRICT_HTTPS}
-
-      KC_HTTP_PORT: ${KC_HTTP_PORT}
-      KC_LOG_LEVEL: ${KC_LOG_LEVEL}
-      KC_METRICS_ENABLED: ${KC_METRICS_ENABLED}
-      KC_HEALTH_ENABLED: ${KC_HEALTH_ENABLED}
-
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
 
-      KEYCLOAK_IMPORT: /opt/keycloak/data/import/wordpress.json
-      PROXY_ADDRESS_FORWARDING: true
-      KEYCLOAK_FRONTEND_URL: http://sashayanebalbes.ddns.net/auth
+      KC_HTTP_RELATIVE_PATH: '/auth'
 
-      KC_HTTP_RELATIVE_PATH: /auth
-      KC_HOSTNAME: sashayanebalbes.ddns.net/auth
-      KC_HTTP_ENABLED: true
-      HTTP_ADDRESS_FORWARDING: true
-    command: start-dev --hostname-debug=true --import-realm 
+      KC_HOSTNAME_STRICT: 'false'
+      KC_HOSTNAME_STRICT_HTTPS: 'false'
+      KC_FEATURES: token-exchange
+      KC_HTTP_ENABLED: 'true'
+      PROXY_ADDRESS_FORWARDING: 'true'
+      KC_HOSTNAME_STRICT_BACKCHANNEL: 'false'
+      KC_HOSTNAME: sashayanebalbes.ddns.net
+      KEYCLOAK_IMPORT: /opt/keycloak/data/import/wordpress.json
+    command:
+      - start
+      - --proxy-headers=xforwarded
+      - --hostname-strict=false
+      - --hostname-strict-https=false
+      - --import-realm 
     depends_on:
       - keycloakdb
-    ports:
-      - 8080:8080
     networks:
       - keycloak_network
       - nginx_wordpress
-    volumes:
-      - ./keycloak/wordpress.json:/opt/keycloak/data/import/wordpress.json:ro
     logging:
       driver: "json-file"
       options:
@@ -210,3 +216,5 @@ volumes:
   db_data:
   postgres_data:
   promtail-data: {}
+  keycloak-volume:
+  wordpress:
